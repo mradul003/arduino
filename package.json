@@ -1,0 +1,18 @@
+{
+  "name": "arduino-web-ide",
+  "version": "1.0.0",
+  "description": "Type Arduino Uno code in a browser, compile it in the cloud, and upload it over Web Serial - no software install required for the end user.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

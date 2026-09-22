@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: arduino-web-ide
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production

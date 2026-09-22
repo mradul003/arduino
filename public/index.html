@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Arduino Web IDE</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css" />
+<style>
+  :root {
+    --bg: #1e1f22;
+    --panel: #26282b;
+    --border: #3a3c40;
+    --accent: #4fa3f7;
+    --accent-2: #37c977;
+    --text: #e6e6e6;
+    --muted: #9aa0a6;
+    --danger: #f2545b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  header h1 {
+    font-size: 16px;
+    margin: 0;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  header h1 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-2); }
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  select, button {
+    font: inherit;
+    font-size: 13px;
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: #2f3134;
+    color: var(--text);
+    cursor: pointer;
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #06131f; font-weight: 600; }
+  button.success { background: var(--accent-2); border-color: var(--accent-2); color: #062211; font-weight: 600; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button:not(:disabled):hover { filter: brightness(1.1); }
+  main { flex: 1; display: flex; min-height: 0; }
+  .editor-pane { flex: 1.4; display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--border); }
+  .CodeMirror { flex: 1; height: 100%; font-size: 14px; }
+  .console-pane { flex: 1; display: flex; flex-direction: column; min-width: 280px; }
+  .console-header {
+    padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--border);
+    font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #log {
+    flex: 1; overflow-y: auto; padding: 10px 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px; white-space: pre-wrap; word-break: break-word; background: #17181a;
+  }
+  .log-line { margin-bottom: 3px; }
+  .log-info { color: var(--text); }
+  .log-ok { color: var(--accent-2); }
+  .log-err { color: var(--danger); }
+  .log-dim { color: var(--muted); }
+  .progress-wrap { padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--border); }
+  .progress-bar { height: 6px; border-radius: 4px; background: #3a3c40; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; background: var(--accent-2); transition: width 0.15s ease; }
+  .monitor { border-top: 1px solid var(--border); display: flex; flex-direction: column; height: 34%; }
+  .monitor-toolbar { display: flex; gap: 8px; padding: 8px 12px; background: var(--panel); align-items: center; }
+  #monitorOut {
+    flex: 1; overflow-y: auto; background: #17181a; padding: 8px 12px; font-family: ui-monospace, monospace;
+    font-size: 12.5px; white-space: pre-wrap;
+  }
+  .monitor-input { display: flex; gap: 8px; padding: 8px 12px; background: var(--panel); }
+  .monitor-input input {
+    flex: 1; font: inherit; font-size: 13px; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--border);
+    background: #2f3134; color: var(--text);
+  }
+  .badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #2f3134; border: 1px solid var(--border); color: var(--muted);
+  }
+  .badge.connected { color: var(--accent-2); border-color: var(--accent-2); }
+  footer { padding: 6px 16px; font-size: 11px; color: var(--muted); background: var(--panel); border-top: 1px solid var(--border); }
+  a { color: var(--accent); }
+  @media (max-width: 800px) {
+    main { flex-direction: column; }
+    .editor-pane { border-right: none; border-bottom: 1px solid var(--border); flex: 1.2; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="dot"></span> Arduino Web IDE <span class="badge" id="portBadge">no board connected</span></h1>
+  <div class="toolbar">
+    <select id="boardSelect">
+      <option value="arduino:avr:uno" selected>Arduino Uno</option>
+    </select>
+    <button id="connectBtn">Connect Board</button>
+    <button id="compileBtn" class="primary">Compile</button>
+    <button id="uploadBtn" class="success" disabled>Compile & Upload</button>
+  </div>
+</header>
+
+<main>
+  <div class="editor-pane">
+    <textarea id="code"></textarea>
+  </div>
+  <div class="console-pane">
+    <div class="console-header">
+      <span>Output</span>
+      <button id="clearLogBtn" style="padding:3px 8px;font-size:11px;">Clear</button>
+    </div>
+    <div id="log"></div>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+    <div class="monitor">
+      <div class="monitor-toolbar">
+        <span style="font-size:12px;color:var(--muted);">Serial Monitor</span>
+        <select id="baudSelect">
+          <option>9600</option>
+          <option selected>115200</option>
+          <option>57600</option>
+          <option>38400</option>
+          <option>19200</option>
+        </select>
+        <button id="monitorToggleBtn">Open</button>
+      </div>
+      <div id="monitorOut"></div>
+      <div class="monitor-input">
+        <input id="monitorInput" placeholder="Type text to send to the board and press Enter" />
+        <button id="monitorSendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Runs entirely from this page — no Arduino IDE install needed. Requires Chrome or Edge (Web Serial API). Compilation happens on this server via arduino-cli.
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
